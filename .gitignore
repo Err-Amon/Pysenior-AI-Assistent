@@ -1,0 +1,105 @@
+# =====================
+# Python
+# =====================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pycache/
+*.env
+*.venv/
+env/
+venv/
+ENV/
+.env.local
+.env.*.local
+
+# pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Pytest
+.pytest_cache/
+.cache
+
+# mypy
+.mypy_cache/
+.dmypy.json
+
+# coverage
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# =====================
+# Virtual environment
+# =====================
+.venv/
+venv/
+ENV/
+env.bak/
+env/
+
+# =====================
+# IDEs & editors
+# =====================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.iml
+
+# =====================
+# Logs
+# =====================
+*.log
+logs/
+*.out
+*.err
+
+# =====================
+# macOS / Linux
+# =====================
+.DS_Store
+*.swp
+*.swo
+*~
+
+# =====================
+# Docker
+# =====================
+*.pid
+*.sock
+docker-compose.override.yml
+docker-compose.override.*.yml
+
+# =====================
+# Node / frontend
+# =====================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+.next/
+out/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# =====================
+# Misc
+# =====================
+*.sqlite3
+*.db
+*.bak
+*.tmp
+*.cache
+*.log
