@@ -26,10 +26,7 @@ VALID_PAYLOAD = {
 
 
 def make_signature(payload: dict, secret: str = WEBHOOK_SECRET) -> str:
-    """
-    Generate a valid HMAC-SHA256 signature for a given payload.
-    Replicates exactly what GitHub does before sending a webhook.
-    """
+
     body = json.dumps(payload, separators=(",", ":")).encode()
     return (
         "sha256="
@@ -42,18 +39,13 @@ def make_signature(payload: dict, secret: str = WEBHOOK_SECRET) -> str:
 
 
 def webhook_headers(payload: dict, event: str = "pull_request") -> dict:
-    """Build a complete set of valid webhook headers for a given payload."""
+
     return {
         "Content-Type": "application/json",
         "X-GitHub-Event": event,
         "X-Hub-Signature-256": make_signature(payload),
         "X-GitHub-Delivery": "test-delivery-id",
     }
-
-
-# ─────────────────────────────────────────────
-# Root endpoint tests
-# ─────────────────────────────────────────────
 
 
 class TestRootEndpoint:
@@ -76,11 +68,6 @@ class TestRootEndpoint:
     def test_returns_version(self):
         response = client.get("/")
         assert response.json()["version"] == "1.0.0"
-
-
-# ─────────────────────────────────────────────
-# Health endpoint tests
-# ─────────────────────────────────────────────
 
 
 class TestHealthEndpoint:
@@ -106,11 +93,6 @@ class TestHealthEndpoint:
         response = client.get("/health/")
         timestamp = response.json()["timestamp"]
         datetime.fromisoformat(timestamp)
-
-
-# ─────────────────────────────────────────────
-# Signature validation tests
-# ─────────────────────────────────────────────
 
 
 class TestSignatureValidation:
@@ -162,11 +144,6 @@ class TestSignatureValidation:
         assert response.status_code == 200
 
 
-# ─────────────────────────────────────────────
-# Event type filtering tests
-# ─────────────────────────────────────────────
-
-
 class TestEventTypeFiltering:
     def test_non_pull_request_event_is_skipped(self):
         headers = webhook_headers(VALID_PAYLOAD, event="push")
@@ -188,11 +165,6 @@ class TestEventTypeFiltering:
         )
         assert response.status_code == 200
         assert response.json()["status"] == "skipped"
-
-
-# ─────────────────────────────────────────────
-# PR action filtering tests
-# ─────────────────────────────────────────────
 
 
 class TestPRActionFiltering:
@@ -260,11 +232,6 @@ class TestPRActionFiltering:
         assert response.json()["status"] == "skipped"
 
 
-# ─────────────────────────────────────────────
-# Payload extraction tests
-# ─────────────────────────────────────────────
-
-
 class TestPayloadExtraction:
     def test_malformed_payload_returns_422(self):
         # Payload is missing required nested fields
@@ -287,17 +254,7 @@ class TestPayloadExtraction:
         assert response.status_code == 422
 
 
-# ─────────────────────────────────────────────
-# Pipeline delegation tests
-# ─────────────────────────────────────────────
-
-
 class TestPipelineDelegation:
-    """
-    Verifies that the route correctly calls every service in order
-    and returns the expected response shape.
-    """
-
     def setup_method(self):
         self.mock_score = MagicMock(
             reliability=88,
