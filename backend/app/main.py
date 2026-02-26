@@ -1,6 +1,17 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.config import get_settings
 from app.routes import github_webhook, health
+
+# Configure logging once at startup based on the LOG_LEVEL env variable
+settings = get_settings()
+logging.basicConfig(
+    level=settings.LOG_LEVEL.upper(),
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+)
 
 app = FastAPI(
     title="PySenior - AI Python Code Review Assistant",

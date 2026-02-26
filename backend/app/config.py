@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     # GitHub
     GITHUB_TOKEN: str = ""
-    GITHUB_WEBHOOK_SECRET: str = ""
+    GITHUB_WEBHOOK_SECRET: str = "test_secret"
 
     # App
     APP_ENV: str = "development"

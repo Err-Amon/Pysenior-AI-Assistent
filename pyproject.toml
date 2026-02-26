@@ -4,4 +4,21 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "fastapi>=0.133.0",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.0.0",
+    "pylance>=2.0.1",
+    "pytest>=9.0.2",
+    "python-dotenv>=1.2.1",
+    "uvicorn>=0.41.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.0.2",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["backend"]
