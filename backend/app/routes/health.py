@@ -1,13 +1,15 @@
 from fastapi import APIRouter
-from datetime import datetime
 
 router = APIRouter()
 
 
 @router.get("/")
-async def health_check():
+def health_check() -> dict:
+    from datetime import datetime, UTC
+
     return {
         "status": "healthy",
         "service": "PySenior",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "version": "1.0.0",
     }

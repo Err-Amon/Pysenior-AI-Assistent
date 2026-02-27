@@ -147,4 +147,8 @@ async def github_webhook(
             "overall": score_card.overall,
         },
         "findings_count": len(findings),
+<<<<<<< HEAD
     }
+=======
+    }
+>>>>>>> 71340ac23da0f14611447206728c7858dd1e1515
