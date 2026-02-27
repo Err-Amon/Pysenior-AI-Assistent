@@ -5,24 +5,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-<<<<<<< HEAD
     "app>=0.0.1",
     "app-config>=2.1.1",
-    "fastapi>=0.133.0",
-    "httpx>=0.28.1",
     "ipykernel>=7.2.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.13.1",
     "uvicorn>=0.41.0",
-]
-=======
     "fastapi>=0.133.0",
     "httpx>=0.28.1",
-    "pydantic-settings>=2.0.0",
-    "pylance>=2.0.1",
     "pytest>=9.0.2",
-    "python-dotenv>=1.2.1",
-    "uvicorn>=0.41.0",
+    "python-dotenv>=1.2.1"
 ]
 
 [dependency-groups]
@@ -33,4 +25,3 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["backend"]
->>>>>>> 71340ac23da0f14611447206728c7858dd1e1515
