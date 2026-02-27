@@ -1,6 +1,6 @@
-# =====================
+
 # Python
-# =====================
+
 __pycache__/
 *.py[cod]
 *.pyo
@@ -36,51 +36,48 @@ coverage.xml
 *.cover
 *.py,cover
 
-# =====================
+
 # Virtual environment
-# =====================
+
 .venv/
 venv/
 ENV/
 env.bak/
 env/
 
-# =====================
+
 # IDEs & editors
-# =====================
+
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
 *.iml
 
-# =====================
+
 # Logs
-# =====================
+
 *.log
 logs/
 *.out
 *.err
-
-# =====================
 # macOS / Linux
-# =====================
+
 .DS_Store
 *.swp
 *.swo
 *~
 
-# =====================
+
 # Docker
-# =====================
 *.pid
 *.sock
 docker-compose.override.yml
 docker-compose.override.*.yml
 
-# =====================
+
 # Node / frontend
-# =====================
+
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -94,9 +91,9 @@ out/
 .env.test.local
 .env.production.local
 
-# =====================
+
 # Misc
-# =====================
+
 *.sqlite3
 *.db
 *.bak
@@ -104,9 +101,6 @@ out/
 *.cache
 *.log
 
-# ============================================
-# PySenior .gitignore
-# ============================================
 
 # Environment variables and secrets
 .env
