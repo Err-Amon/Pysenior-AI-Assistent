@@ -10,7 +10,7 @@ from app.config import get_settings
 logger = logging.getLogger(__name__)
 
 # LLM Provider Configuration
-LLM_PROVIDER = "openai"  # Options: "openai"
+LLM_PROVIDER = "openai"  # Options: "openai", "anthropic", "gemini", "groq"
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # seconds
 
@@ -231,6 +231,211 @@ def _call_llm_openai(system_prompt: str, user_prompt: str) -> str:
             raise
 
 
+def _call_llm_anthropic(system_prompt: str, user_prompt: str) -> str:
+
+    try:
+        import anthropic
+    except ImportError:
+        raise ImportError(
+            "Anthropic package not installed. Install with: pip install anthropic"
+        )
+
+    settings = get_settings()
+    anthropic_api_key = getattr(settings, "ANTHROPIC_API_KEY", None)
+
+    if not anthropic_api_key:
+        logger.error("ANTHROPIC_API_KEY not configured")
+        raise ValueError("ANTHROPIC_API_KEY environment variable is required")
+
+    # Initialize Anthropic client
+    client = anthropic.Anthropic(api_key=anthropic_api_key)
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            logger.debug(
+                "Calling Anthropic API | attempt=%s | model=claude-sonnet-4-20250514",
+                attempt + 1,
+            )
+
+            # Note: Claude requires JSON instruction in user message
+            # since it doesn't have native JSON mode
+            json_instruction = "\n\nIMPORTANT: Return ONLY a valid JSON array. No markdown, no explanations, just the JSON array."
+
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",  # Latest Claude Sonnet
+                max_tokens=4000,
+                temperature=0.2,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_prompt + json_instruction}],
+            )
+
+            content = response.content[0].text
+
+            logger.info(
+                "Anthropic API call successful | input_tokens=%s | output_tokens=%s",
+                response.usage.input_tokens,
+                response.usage.output_tokens,
+            )
+
+            return content
+
+        except anthropic.RateLimitError as e:
+            logger.warning(
+                "Anthropic rate limit hit | attempt=%s | error=%s",
+                attempt + 1,
+                str(e),
+            )
+            if attempt < MAX_RETRIES - 1:
+                sleep_time = RETRY_DELAY * (2**attempt)
+                logger.info("Retrying after %s seconds...", sleep_time)
+                time.sleep(sleep_time)
+            else:
+                raise
+
+        except anthropic.APIError as e:
+            logger.error(
+                "Anthropic API error | attempt=%s | error=%s",
+                attempt + 1,
+                str(e),
+            )
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAY)
+            else:
+                raise
+
+        except Exception as e:
+            logger.error(
+                "Unexpected error calling Anthropic | attempt=%s | error=%s",
+                attempt + 1,
+                str(e),
+            )
+            raise
+
+
+def _call_llm_gemini(system_prompt: str, user_prompt: str) -> str:
+
+    try:
+        import google.generativeai as genai
+    except ImportError:
+        raise ImportError(
+            "Google Generative AI package not installed. "
+            "Install with: pip install google-generativeai"
+        )
+
+    settings = get_settings()
+    gemini_api_key = getattr(settings, "GEMINI_API_KEY", None)
+
+    if not gemini_api_key:
+        logger.error("GEMINI_API_KEY not configured")
+        raise ValueError("GEMINI_API_KEY environment variable is required")
+
+    # Configure Gemini
+    genai.configure(api_key=gemini_api_key)
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            logger.debug(
+                "Calling Gemini API | attempt=%s | model=gemini-1.5-flash",
+                attempt + 1,
+            )
+
+            model = genai.GenerativeModel("gemini-1.5-flash")
+
+            # Combine prompts with JSON instruction
+            full_prompt = (
+                f"{system_prompt}\n\n"
+                f"{user_prompt}\n\n"
+                f"IMPORTANT: Return ONLY a valid JSON array. "
+                f"No markdown, no explanations, just the JSON array."
+            )
+
+            response = model.generate_content(
+                full_prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.2,
+                    max_output_tokens=4000,
+                ),
+            )
+
+            content = response.text
+
+            logger.info("Gemini API call successful")
+
+            return content
+
+        except Exception as e:
+            logger.error(
+                "Gemini API error | attempt=%s | error=%s",
+                attempt + 1,
+                str(e),
+            )
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAY)
+            else:
+                raise
+
+
+def _call_llm_groq(system_prompt: str, user_prompt: str) -> str:
+
+    try:
+        from groq import Groq
+    except ImportError:
+        raise ImportError("Groq package not installed. Install with: pip install groq")
+
+    settings = get_settings()
+    groq_api_key = getattr(settings, "GROQ_API_KEY", None)
+
+    if not groq_api_key:
+        logger.error("GROQ_API_KEY not configured")
+        raise ValueError("GROQ_API_KEY environment variable is required")
+
+    # Initialize Groq client
+    client = Groq(api_key=groq_api_key)
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            logger.debug(
+                "Calling Groq API | attempt=%s | model=llama-3.3-70b-versatile",
+                attempt + 1,
+            )
+
+            # Add JSON instruction to user prompt
+            json_instruction = (
+                "\n\nIMPORTANT: Return ONLY a valid JSON array. "
+                "No markdown, no explanations, just the JSON array."
+            )
+
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",  # Fast & capable model
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt + json_instruction},
+                ],
+                temperature=0.2,
+                max_tokens=4000,
+            )
+
+            content = response.choices[0].message.content
+
+            logger.info(
+                "Groq API call successful | tokens_used=%s",
+                response.usage.total_tokens if hasattr(response, "usage") else "N/A",
+            )
+
+            return content
+
+        except Exception as e:
+            logger.error(
+                "Groq API error | attempt=%s | error=%s",
+                attempt + 1,
+                str(e),
+            )
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAY)
+            else:
+                raise
+
+
 def _call_llm(prompt: str) -> str:
 
     settings = get_settings()
@@ -253,10 +458,16 @@ def _call_llm(prompt: str) -> str:
     try:
         if provider == "openai":
             return _call_llm_openai(system_prompt, user_prompt)
+        elif provider == "anthropic":
+            return _call_llm_anthropic(system_prompt, user_prompt)
+        elif provider == "gemini":
+            return _call_llm_gemini(system_prompt, user_prompt)
+        elif provider == "groq":
+            return _call_llm_groq(system_prompt, user_prompt)
         else:
             raise ValueError(
                 f"Invalid LLM provider: {provider}. "
-                "Valid options: 'openai', 'anthropic'"
+                "Valid options: 'openai', 'anthropic', 'gemini', 'groq'"
             )
 
     except ImportError as e:

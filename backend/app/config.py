@@ -16,8 +16,11 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE_KB: int = 500
 
     # LLM Configuration
-    LLM_PROVIDER: str = "openai"  # Options: "openai"
+    LLM_PROVIDER: str = "openai"  # Options: "openai", "anthropic", "gemini", "groq"
     OPENAI_API_KEY: str = ""
+    ANTHROPIC_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""  # FREE tier: https://makersuite.google.com/app/apikey
+    GROQ_API_KEY: str = ""  # FREE tier: https://console.groq.com
 
 
 @lru_cache()
