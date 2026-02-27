@@ -14,7 +14,9 @@ dependencies = [
     "fastapi>=0.133.0",
     "httpx>=0.28.1",
     "pytest>=9.0.2",
-    "python-dotenv>=1.2.1"
+    "python-dotenv>=1.2.1",
+    "pygithub>=2.8.1",
+    "openai>=2.24.0",
 ]
 
 [dependency-groups]

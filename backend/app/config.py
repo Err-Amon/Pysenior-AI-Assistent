@@ -6,13 +6,18 @@ from functools import lru_cache
 class Settings(BaseSettings):
     model_config = ConfigDict(env_file=".env", case_sensitive=True)
 
+    # GitHub
     GITHUB_TOKEN: str = ""
-    GITHUB_WEBHOOK_SECRET: str = ""
-    OPENROUTER_API_KEY: str = ""
-    AI_MODEL: str = "openai/gpt-5.3-codex"
+    GITHUB_WEBHOOK_SECRET: str = "test_secret"
+
+    # App
     APP_ENV: str = "development"
     LOG_LEVEL: str = "INFO"
     MAX_FILE_SIZE_KB: int = 500
+
+    # LLM Configuration
+    LLM_PROVIDER: str = "openai"  # Options: "openai"
+    OPENAI_API_KEY: str = ""
 
 
 @lru_cache()

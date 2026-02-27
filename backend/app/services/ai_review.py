@@ -1,129 +1,344 @@
 import json
 import logging
-from typing import List
-import httpx
-from app.config import settings
+import time
+from typing import Any
+
+from app.models.review_models import Category, ReviewFinding, ReviewResult, Severity
+from app.services.code_parser import CodeEntity, ParsedFile
+from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL = "openai/gpt-5.3-codex"
+# LLM Provider Configuration
+LLM_PROVIDER = "openai"  # Options: "openai"
+MAX_RETRIES = 3
+RETRY_DELAY = 2  # seconds
 
-SYSTEM_PROMPT = """You are PySenior — a battle-hardened Senior Python Engineer with 15+ years of experience.
-You specialize in Python automation scripts, DevOps tooling, data pipelines, and production systems.
 
-For every review, you MUST identify:
-1. Real bugs and logic errors
-2. Security vulnerabilities (injections, unsafe deserialization, exposed secrets)
-3. Performance issues (inefficient loops, memory leaks)
-4. Maintainability improvements (naming, structure, error handling, logging)
-5. What is done well
+def _build_system_prompt() -> str:
 
-Format your response as JSON with this EXACT structure:
+    return """You are a senior Python engineer with 10+ years of experience reviewing automation code.
+
+Your role is to review Python code for automation scripts, focusing on:
+
+1. Reliability - Error handling, edge cases, robustness
+2. Security - Shell injections, unsafe operations, credential handling
+3. Performance - Inefficient loops, memory usage, unnecessary operations
+4. Maintainability - Code clarity, modularity, documentation
+
+For each issue you find:
+- Identify the exact line number
+- Classify severity: low, medium, high, critical
+- Classify category: reliability, security, performance, maintainability
+- Provide a clear title (1-2 sentences)
+- Explain the issue in detail
+- Give an actionable suggestion to fix it
+
+Return your response as a JSON array of findings. Each finding must have:
 {
-  "summary": "2-3 sentence overall assessment",
-  "praise": ["what was done well"],
-  "critical_issues": [
-    {"line": <int or null>, "issue": "description", "fix": "concrete fix suggestion"}
-  ],
-  "warnings": [
-    {"line": <int or null>, "issue": "description", "fix": "concrete fix suggestion"}
-  ],
-  "suggestions": [
-    {"line": <int or null>, "issue": "description", "fix": "concrete fix suggestion"}
-  ],
-  "scores": {
-    "reliability": <0-10>,
-    "security": <0-10>,
-    "performance": <0-10>,
-    "maintainability": <0-10>
-  }
+  "filename": "path/to/file.py",
+  "line_number": 42,
+  "severity": "high",
+  "category": "security",
+  "title": "Brief issue description",
+  "description": "Detailed explanation of why this is problematic",
+  "suggestion": "Specific recommendation to fix the issue"
 }
 
-Return ONLY valid JSON — no markdown, no extra text."""
+Focus on automation-specific concerns:
+- Shell command execution safety
+- File operation error handling
+- API retry logic
+- Resource cleanup
+- Logging practices
+- Configuration management
+
+Be strict but fair. Only report actual issues, not stylistic preferences.
+Prioritize issues that could cause production failures.
+"""
 
 
-class AIReviewService:
-    def __init__(self):
-        self.api_key = settings.OPENROUTER_API_KEY
-        self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://pysenior.dev",
-            "X-Title": "PySenior",
-        }
+def _build_file_context(parsed_file: ParsedFile) -> str:
 
-    async def review(
-        self,
-        filename: str,
-        code: str,
-        diff: str,
-        ast_issues: List[str],
-    ) -> dict:
-        ast_summary = "\n".join(f"- {i}" for i in ast_issues) if ast_issues else "None detected."
+    context_parts = [
+        f"File: {parsed_file.filename}",
+        f"Total lines: {parsed_file.total_lines}",
+        f"Imports: {', '.join(parsed_file.imports[:10])}",  # Limit imports to avoid token waste
+        "",
+        "Code Structure:",
+    ]
 
-        user_message = f"""## File: `{filename}`
+    # Add entity information
+    for entity in parsed_file.entities:
+        entity_desc = f"- {entity.entity_type} '{entity.name}' (lines {entity.line_start}-{entity.line_end})"
 
-### AST Pre-Analysis:
-{ast_summary}
+        if entity.complexity:
+            entity_desc += f" [complexity: {entity.complexity}]"
 
-### Git Diff:
-```diff
-{diff[:3000] if diff else "Full file — no diff available"}
-```
+        if entity.docstring:
+            # Truncate long docstrings
+            docstring_preview = (
+                entity.docstring[:100] + "..."
+                if len(entity.docstring) > 100
+                else entity.docstring
+            )
+            entity_desc += f" - {docstring_preview}"
 
-### Full Source Code:
-```python
-{code[:6000]}
-```
+        context_parts.append(entity_desc)
 
-Review this Python code as a senior engineer. Return ONLY valid JSON."""
+    context_parts.extend(
+        ["", "Full Code:", "```python", parsed_file.raw_content, "```"]
+    )
 
-        payload = {
-            "model": MODEL,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_message},
-            ],
-            "max_tokens": 2000,
-        }
+    return "\n".join(context_parts)
+
+
+def _parse_ai_response(response_text: str, filename: str) -> list[ReviewFinding]:
+
+    findings = []
+
+    try:
+        # Try to extract JSON from response
+        # LLMs sometimes wrap JSON in markdown code blocks
+        cleaned = response_text.strip()
+
+        if cleaned.startswith("```json"):
+            cleaned = cleaned.removeprefix("```json")
+        if cleaned.startswith("```"):
+            cleaned = cleaned.removeprefix("```")
+        if cleaned.endswith("```"):
+            cleaned = cleaned.removesuffix("```")
+
+        cleaned = cleaned.strip()
+
+        # Parse JSON
+        raw_findings = json.loads(cleaned)
+
+        if not isinstance(raw_findings, list):
+            logger.warning("AI response is not a list | filename=%s", filename)
+            return []
+
+        # Convert each finding to ReviewFinding
+        for item in raw_findings:
+            try:
+                finding = ReviewFinding(
+                    filename=item.get("filename", filename),
+                    line_number=item["line_number"],
+                    severity=Severity(item["severity"].lower()),
+                    category=Category(item["category"].lower()),
+                    title=item["title"],
+                    description=item["description"],
+                    suggestion=item["suggestion"],
+                    code_snippet=item.get("code_snippet"),
+                )
+                findings.append(finding)
+
+            except (KeyError, ValueError) as e:
+                logger.warning(
+                    "Skipping malformed finding | filename=%s | error=%s | item=%s",
+                    filename,
+                    str(e),
+                    item,
+                )
+                continue
+
+    except json.JSONDecodeError as e:
+        logger.error(
+            "Failed to parse AI response as JSON | filename=%s | error=%s",
+            filename,
+            str(e),
+        )
+
+    return findings
+
+
+def _call_llm_openai(system_prompt: str, user_prompt: str) -> str:
+
+    try:
+        import openai
+    except ImportError:
+        raise ImportError(
+            "OpenAI package not installed. Install with: pip install openai"
+        )
+
+    settings = get_settings()
+    openai_api_key = getattr(settings, "OPENAI_API_KEY", None)
+
+    if not openai_api_key:
+        logger.error("OPENAI_API_KEY not configured")
+        raise ValueError("OPENAI_API_KEY environment variable is required")
+
+    # Initialize OpenAI client (v1.0+ API)
+    client = openai.OpenAI(api_key=openai_api_key)
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            logger.debug(
+                "Calling OpenAI API | attempt=%s | model=gpt-4o",
+                attempt + 1,
+            )
+
+            response = client.chat.completions.create(
+                model="gpt-4o",  # Use latest GPT-4o model
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.2,  # Low temperature for consistent, focused reviews
+                max_tokens=4000,  # Enough for detailed reviews
+                response_format={"type": "json_object"},  # Force JSON output
+            )
+
+            content = response.choices[0].message.content
+
+            logger.info(
+                "OpenAI API call successful | tokens_used=%s",
+                response.usage.total_tokens,
+            )
+
+            return content
+
+        except openai.RateLimitError as e:
+            logger.warning(
+                "OpenAI rate limit hit | attempt=%s | error=%s",
+                attempt + 1,
+                str(e),
+            )
+            if attempt < MAX_RETRIES - 1:
+                sleep_time = RETRY_DELAY * (2**attempt)  # Exponential backoff
+                logger.info("Retrying after %s seconds...", sleep_time)
+                time.sleep(sleep_time)
+            else:
+                raise
+
+        except openai.APIError as e:
+            logger.error(
+                "OpenAI API error | attempt=%s | error=%s",
+                attempt + 1,
+                str(e),
+            )
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAY)
+            else:
+                raise
+
+        except Exception as e:
+            logger.error(
+                "Unexpected error calling OpenAI | attempt=%s | error=%s",
+                attempt + 1,
+                str(e),
+            )
+            raise
+
+
+def _call_llm(prompt: str) -> str:
+
+    settings = get_settings()
+
+    # Allow override via environment variable
+    provider = getattr(settings, "LLM_PROVIDER", LLM_PROVIDER).lower()
+
+    # Split prompt into system and user parts
+    # The prompt format is: "<system_prompt>\n\n<file_context>"
+    parts = prompt.split("\n\n", 1)
+    if len(parts) == 2:
+        system_prompt, user_prompt = parts
+    else:
+        # Fallback if format is unexpected
+        system_prompt = _build_system_prompt()
+        user_prompt = prompt
+
+    logger.info("Calling LLM | provider=%s", provider)
+
+    try:
+        if provider == "openai":
+            return _call_llm_openai(system_prompt, user_prompt)
+        else:
+            raise ValueError(
+                f"Invalid LLM provider: {provider}. "
+                "Valid options: 'openai', 'anthropic'"
+            )
+
+    except ImportError as e:
+        logger.error("LLM provider package not installed | error=%s", str(e))
+        raise
+
+    except ValueError as e:
+        logger.error("LLM configuration error | error=%s", str(e))
+        raise
+
+    except Exception as e:
+        logger.error("LLM call failed | provider=%s | error=%s", provider, str(e))
+        raise
+
+
+def generate(parsed_files: list[ParsedFile]) -> list[ReviewFinding]:
+
+    all_findings = []
+
+    system_prompt = _build_system_prompt()
+
+    for parsed_file in parsed_files:
+        # Skip files with syntax errors - we can't analyze them properly
+        if parsed_file.syntax_errors:
+            logger.info(
+                "Skipping file with syntax errors | filename=%s | errors=%s",
+                parsed_file.filename,
+                len(parsed_file.syntax_errors),
+            )
+
+            # Add a finding about the syntax error
+            syntax_finding = ReviewFinding(
+                filename=parsed_file.filename,
+                line_number=1,
+                severity=Severity.CRITICAL,
+                category=Category.RELIABILITY,
+                title="Syntax error in file",
+                description=f"File contains syntax errors: {'; '.join(parsed_file.syntax_errors)}",
+                suggestion="Fix the syntax errors before code can be analyzed.",
+            )
+            all_findings.append(syntax_finding)
+            continue
+
+        # Build file-specific context
+        file_context = _build_file_context(parsed_file)
+
+        # Construct complete prompt
+        full_prompt = f"{system_prompt}\n\n{file_context}"
+
+        logger.info(
+            "Calling LLM for review | filename=%s | entities=%s",
+            parsed_file.filename,
+            len(parsed_file.entities),
+        )
 
         try:
-            async with httpx.AsyncClient(timeout=60) as client:
-                response = await client.post(
-                    OPENROUTER_API_URL,
-                    headers=self.headers,
-                    json=payload,
-                )
-                response.raise_for_status()
-                data = response.json()
-                raw = data["choices"][0]["message"]["content"].strip()
+            # Call LLM
+            response_text = _call_llm(full_prompt)
 
-                if raw.startswith("```"):
-                    raw = raw.split("```")[1]
-                    if raw.startswith("json"):
-                        raw = raw[4:]
+            # Parse response
+            findings = _parse_ai_response(response_text, parsed_file.filename)
 
-                return json.loads(raw)
+            all_findings.extend(findings)
 
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse AI response as JSON: {e}")
-            return self._fallback_review(ast_issues)
+            logger.info(
+                "LLM review completed | filename=%s | findings=%s",
+                parsed_file.filename,
+                len(findings),
+            )
+
         except Exception as e:
-            logger.error(f"AI review failed for {filename}: {e}")
-            return self._fallback_review(ast_issues)
+            logger.error(
+                "LLM call failed | filename=%s | error=%s",
+                parsed_file.filename,
+                str(e),
+            )
+            # Continue with other files
 
-    def _fallback_review(self, ast_issues: List[str]) -> dict:
-        return {
-            "summary": "Automated AST analysis completed. AI review unavailable.",
-            "praise": [],
-            "critical_issues": [],
-            "warnings": [{"line": None, "issue": i, "fix": "See issue description"} for i in ast_issues[:5]],
-            "suggestions": [],
-            "scores": {
-                "reliability": 5.0,
-                "security": 5.0,
-                "performance": 5.0,
-                "maintainability": 5.0,
-            },
-        }
+    logger.info(
+        "Review generation completed | total_files=%s | total_findings=%s",
+        len(parsed_files),
+        len(all_findings),
+    )
+
+    return all_findings
