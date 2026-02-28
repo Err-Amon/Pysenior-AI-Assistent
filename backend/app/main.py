@@ -39,4 +39,3 @@ async def root():
         "status": "running",
         "version": "1.0.0",
     }
-    #amazing
