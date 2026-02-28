@@ -7,6 +7,22 @@ from app.models.review_models import Category, ReviewFinding, ReviewResult, Seve
 from app.services.code_parser import CodeEntity, ParsedFile
 from app.config import get_settings
 
+# LLM Provider Imports (at module level to support mocking in tests)
+try:
+    import openai
+except ImportError:
+    openai = None
+
+try:
+    import anthropic
+except ImportError:
+    anthropic = None
+
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+
 logger = logging.getLogger(__name__)
 
 # LLM Provider Configuration
@@ -154,9 +170,7 @@ def _parse_ai_response(response_text: str, filename: str) -> list[ReviewFinding]
 
 def _call_llm_openai(system_prompt: str, user_prompt: str) -> str:
 
-    try:
-        import openai
-    except ImportError:
+    if openai is None:
         raise ImportError(
             "OpenAI package not installed. Install with: pip install openai"
         )
@@ -233,9 +247,7 @@ def _call_llm_openai(system_prompt: str, user_prompt: str) -> str:
 
 def _call_llm_anthropic(system_prompt: str, user_prompt: str) -> str:
 
-    try:
-        import anthropic
-    except ImportError:
+    if anthropic is None:
         raise ImportError(
             "Anthropic package not installed. Install with: pip install anthropic"
         )
@@ -314,9 +326,7 @@ def _call_llm_anthropic(system_prompt: str, user_prompt: str) -> str:
 
 def _call_llm_gemini(system_prompt: str, user_prompt: str) -> str:
 
-    try:
-        import google.generativeai as genai
-    except ImportError:
+    if genai is None:
         raise ImportError(
             "Google Generative AI package not installed. "
             "Install with: pip install google-generativeai"

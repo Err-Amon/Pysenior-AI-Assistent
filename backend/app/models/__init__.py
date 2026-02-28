@@ -1,15 +1,41 @@
-from app.models.pr_models import PullRequestData, PRFile
-from app.models.review_models import ReviewFinding, ReviewResult
-from app.models.score_models import CategoryScore, ScoreCard
+from app.models.pr_models import PRFile, PullRequestData, PRPayload, WebhookPayload
+from app.models.review_models import (
+    Category,
+    Severity,
+    ReviewIssue,
+    ReviewFinding,
+    ReviewResult,
+    AIReviewResult,
+    FileReviewRequest,
+    FileReviewResponse,
+)
+from app.models.score_models import (
+    ScoreBreakdown,
+    CategoryScore,
+    ScoreCard,
+    CodeScore,
+    FileReview,
+)
 
 __all__ = [
-    # PR layer
-    "PullRequestData",
+    # PR models
     "PRFile",
-    # Review layer
+    "PullRequestData",
+    "PRPayload",
+    "WebhookPayload",
+    # Review models
+    "Category",
+    "Severity",
+    "ReviewIssue",
     "ReviewFinding",
     "ReviewResult",
-    # Score layer
+    "AIReviewResult",
+    "FileReviewRequest",
+    "FileReviewResponse",
+    # Score models
+    "ScoreBreakdown",
     "CategoryScore",
     "ScoreCard",
+    "CodeScore",
+    "FileReview",
 ]
