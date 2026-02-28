@@ -48,6 +48,7 @@ class PRPayload(BaseModel):
     files: List[PRFile] = []
 
 
+# is this code good enough??
 class WebhookPayload(BaseModel):
     action: str
     number: Optional[int] = None
