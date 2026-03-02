@@ -482,7 +482,7 @@ git commit -m "feat: add your feature"
 git push origin feature/your-feature
 
 # 5. Open Pull Request
-# PySenior will review your code! 😄
+# PySenior will review your code! 
 ```
 
 ---
