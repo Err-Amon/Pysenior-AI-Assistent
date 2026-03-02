@@ -535,16 +535,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Groq** - Fast inference
 - **OpenRouter** - Unified LLM API
 
----
-
-## Star History
-
-If you find PySenior useful, please star the repository!
-
-[![Star History](https://api.star-history.com/svg?repos=your-org/ai-python-reviewer&type=Date)](https://star-history.com/#your-org/ai-python-reviewer&Date)
-
----
-
 ## Stats
 
 - **210+ Tests** with 93% coverage
