@@ -92,7 +92,8 @@ class TestGetPullRequest:
 
 class TestGetPRFiles:
     @patch("app.services.github_service.get_pull_request")
-    def test_returns_python_files_only(self, mock_get_pr):
+    @patch("app.services.github_service.get_file_content")
+    def test_returns_python_files_only(self, mock_get_content, mock_get_pr):
         mock_pr = Mock()
 
         # Create mock files
@@ -111,6 +112,7 @@ class TestGetPRFiles:
 
         mock_pr.get_files.return_value = [py_file, non_py_file]
         mock_get_pr.return_value = mock_pr
+        mock_get_content.return_value = "def test(): pass"
 
         result = github_service.get_pr_files("owner/repo", 42)
 
@@ -118,7 +120,8 @@ class TestGetPRFiles:
         assert result[0].filename == "script.py"
 
     @patch("app.services.github_service.get_pull_request")
-    def test_skips_large_files(self, mock_get_pr):
+    @patch("app.services.github_service.get_file_content")
+    def test_skips_large_files(self, mock_get_content, mock_get_pr):
         mock_pr = Mock()
 
         # Create a large file
@@ -137,6 +140,7 @@ class TestGetPRFiles:
 
         mock_pr.get_files.return_value = [large_file, small_file]
         mock_get_pr.return_value = mock_pr
+        mock_get_content.return_value = "def test(): pass"
 
         result = github_service.get_pr_files("owner/repo", 42)
 

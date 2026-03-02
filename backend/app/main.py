@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routes import github_webhook, health
+from app.routes import github_webhook, health, ai_review
 
 # Configure logging once at startup based on the LOG_LEVEL env variable
 settings = get_settings()
@@ -29,6 +29,7 @@ app.add_middleware(
 
 app.include_router(health.router, prefix="/health", tags=["Health"])
 app.include_router(github_webhook.router, prefix="/webhook", tags=["GitHub Webhook"])
+app.include_router(ai_review.router, prefix="/api", tags=["AI Review"])
 
 
 @app.get("/")

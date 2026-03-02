@@ -81,6 +81,20 @@ def get_pr_files(repository: str, pr_number: int) -> list[PRFile]:
             continue
 
         normalized = _normalize_file(gh_file)
+        # Fetch actual file content from the PR's head commit
+        try:
+            normalized.content = get_file_content(
+                repository, gh_file.filename, pr.head.sha
+            )
+        except Exception as e:
+            logger.error(
+                "Failed to fetch file content | repo=%s | file=%s | error=%s",
+                repository,
+                gh_file.filename,
+                str(e),
+            )
+            continue
+
         files.append(normalized)
 
     logger.info(

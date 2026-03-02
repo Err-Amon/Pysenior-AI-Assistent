@@ -16,11 +16,17 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE_KB: int = 500
 
     # LLM Configuration
-    LLM_PROVIDER: str = "openai"  # Options: "openai", "anthropic", "gemini", "groq"
+    LLM_PROVIDER: str = (
+        "groq"  # Options: "openai", "anthropic", "gemini", "groq", "openrouter"
+    )
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
     GEMINI_API_KEY: str = ""  # FREE tier: https://makersuite.google.com/app/apikey
     GROQ_API_KEY: str = ""  # FREE tier: https://console.groq.com
+    OPENROUTER_API_KEY: str = ""  # Access to multiple models: https://openrouter.ai
+    OPENROUTER_MODEL: str = (
+        "anthropic/claude-3.5-sonnet"  # Default model for OpenRouter
+    )
 
 
 @lru_cache()

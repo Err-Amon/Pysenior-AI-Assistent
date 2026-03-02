@@ -270,18 +270,16 @@ def parse(files: list[PRFile]) -> list[ParsedFile]:
     parsed_files = []
 
     for pr_file in files:
-        # Skip files without patches (deleted files)
-        if not pr_file.patch and not pr_file.content:
+        # Skip files without content (deleted files or files we failed to fetch content for)
+        if not pr_file.content:
             logger.debug(
                 "Skipping file without content | filename=%s", pr_file.filename
             )
             continue
 
-        # Use patch or content
-        content = pr_file.content if pr_file.content else pr_file.patch or ""
-
+        # Only parse actual file content, not patch data
         try:
-            parsed = parse_python_file(pr_file.filename, content)
+            parsed = parse_python_file(pr_file.filename, pr_file.content)
             parsed_files.append(parsed)
 
         except Exception as e:

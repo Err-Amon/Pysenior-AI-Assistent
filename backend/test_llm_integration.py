@@ -1,7 +1,10 @@
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Set correct working directory to backend
+current_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(current_dir)
+sys.path.append(current_dir)
 
 from app.config import get_settings
 from app.services.ai_review import _call_llm, generate
@@ -9,49 +12,23 @@ from app.services.code_parser import parse
 from app.models.pr_models import PRFile
 
 
-def test_llm_connection():
+def test_groq_connection():
     settings = get_settings()
 
     print("=" * 60)
-    print("PySenior LLM Integration Test")
+    print("PySenior Groq API Integration Test")
     print("=" * 60)
-    print(f"LLM Provider: {settings.LLM_PROVIDER}")
+    print(f"LLM Provider: Groq")
     print()
 
-    # Check if required API keys are set
-    if settings.LLM_PROVIDER == "openai":
-        if not settings.OPENAI_API_KEY:
-            print("OpenAI API key is not configured")
-            print("Please set OPENAI_API_KEY in .env file")
-            return False
-        print("OpenAI API key configured")
-
-    elif settings.LLM_PROVIDER == "anthropic":
-        if not settings.ANTHROPIC_API_KEY:
-            print("Anthropic API key is not configured")
-            print("Please set ANTHROPIC_API_KEY in .env file")
-            return False
-        print("Anthropic API key configured")
-
-    elif settings.LLM_PROVIDER == "gemini":
-        if not settings.GEMINI_API_KEY:
-            print("Google Gemini API key is not configured")
-            print("Please set GEMINI_API_KEY in .env file")
-            return False
-        print("Google Gemini API key configured")
-
-    elif settings.LLM_PROVIDER == "groq":
-        if not settings.GROQ_API_KEY:
-            print("Groq API key is not configured")
-            print("Please set GROQ_API_KEY in .env file")
-            return False
-        print("Groq API key configured")
-
-    else:
-        print(f"Unsupported LLM provider: {settings.LLM_PROVIDER}")
-        print("Please choose from: openai, anthropic, gemini, groq")
+    # Check if Groq API key is set
+    if not settings.GROQ_API_KEY:
+        print("Groq API key is not configured")
+        print("Please set GROQ_API_KEY in .env file")
+        print("You can get a free API key from: https://console.groq.com")
         return False
 
+    print("Groq API key configured")
     print()
     return True
 
@@ -163,8 +140,8 @@ def safe_function(cmd):
 
 def main():
     """Main test function"""
-    # Test LLM configuration
-    if not test_llm_connection():
+    # Test Groq configuration
+    if not test_groq_connection():
         return 1
 
     # Test simple LLM call

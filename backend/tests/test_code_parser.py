@@ -292,7 +292,7 @@ class TestParseMultipleFiles:
             additions=10,
             deletions=2,
             changes=12,
-            patch="def hello(): pass",
+            content="def hello(): pass",
             sha="abc123",
         )
 
@@ -302,7 +302,7 @@ class TestParseMultipleFiles:
             additions=20,
             deletions=0,
             changes=20,
-            patch="class Test: pass",
+            content="class Test: pass",
             sha="def456",
         )
 
@@ -319,7 +319,7 @@ class TestParseMultipleFiles:
             additions=5,
             deletions=1,
             changes=6,
-            patch="def test(): pass",
+            content="def test(): pass",
             sha="abc123",
         )
 
@@ -346,7 +346,7 @@ class TestParseMultipleFiles:
             additions=5,
             deletions=0,
             changes=5,
-            patch="def valid(): pass",
+            content="def valid(): pass",
             sha="abc123",
         )
 
@@ -356,7 +356,7 @@ class TestParseMultipleFiles:
             additions=5,
             deletions=0,
             changes=5,
-            patch="def broken(",
+            content="def broken(",
             sha="def456",
         )
 

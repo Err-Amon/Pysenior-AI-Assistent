@@ -7,16 +7,16 @@ from app.models.review_models import Category, ReviewFinding, ReviewResult, Seve
 from app.services.code_parser import CodeEntity, ParsedFile
 from app.config import get_settings
 
-# LLM Provider Imports (at module level to support mocking in tests)
+# LLM Provider Imports (for mocking support)
+try:
+    from groq import Groq
+except ImportError:
+    Groq = None
+
 try:
     import openai
 except ImportError:
     openai = None
-
-try:
-    import anthropic
-except ImportError:
-    anthropic = None
 
 try:
     import google.generativeai as genai
@@ -26,7 +26,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # LLM Provider Configuration
-LLM_PROVIDER = "openai"  # Options: "openai", "anthropic", "gemini", "groq"
+LLM_PROVIDER = "groq"  # Options: "openai", "anthropic", "gemini", "groq", "openrouter"
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # seconds
 
@@ -75,7 +75,6 @@ Prioritize issues that could cause production failures.
 
 
 def _build_file_context(parsed_file: ParsedFile) -> str:
-
     context_parts = [
         f"File: {parsed_file.filename}",
         f"Total lines: {parsed_file.total_lines}",
@@ -169,7 +168,6 @@ def _parse_ai_response(response_text: str, filename: str) -> list[ReviewFinding]
 
 
 def _call_llm_openai(system_prompt: str, user_prompt: str) -> str:
-
     if openai is None:
         raise ImportError(
             "OpenAI package not installed. Install with: pip install openai"
@@ -246,8 +244,9 @@ def _call_llm_openai(system_prompt: str, user_prompt: str) -> str:
 
 
 def _call_llm_anthropic(system_prompt: str, user_prompt: str) -> str:
-
-    if anthropic is None:
+    try:
+        import anthropic
+    except ImportError:
         raise ImportError(
             "Anthropic package not installed. Install with: pip install anthropic"
         )
@@ -325,7 +324,6 @@ def _call_llm_anthropic(system_prompt: str, user_prompt: str) -> str:
 
 
 def _call_llm_gemini(system_prompt: str, user_prompt: str) -> str:
-
     if genai is None:
         raise ImportError(
             "Google Generative AI package not installed. "
@@ -386,10 +384,7 @@ def _call_llm_gemini(system_prompt: str, user_prompt: str) -> str:
 
 
 def _call_llm_groq(system_prompt: str, user_prompt: str) -> str:
-
-    try:
-        from groq import Groq
-    except ImportError:
+    if Groq is None:
         raise ImportError("Groq package not installed. Install with: pip install groq")
 
     settings = get_settings()
@@ -446,8 +441,125 @@ def _call_llm_groq(system_prompt: str, user_prompt: str) -> str:
                 raise
 
 
-def _call_llm(prompt: str) -> str:
+def _call_llm_openrouter(system_prompt: str, user_prompt: str) -> str:
+    try:
+        import requests
+    except ImportError:
+        raise ImportError(
+            "Requests package not installed. Install with: pip install requests"
+        )
 
+    settings = get_settings()
+    openrouter_api_key = getattr(settings, "OPENROUTER_API_KEY", None)
+
+    if not openrouter_api_key:
+        logger.error("OPENROUTER_API_KEY not configured")
+        raise ValueError("OPENROUTER_API_KEY environment variable is required")
+
+    # Get model preference (default to Claude Sonnet 3.5)
+    model = getattr(settings, "OPENROUTER_MODEL", "anthropic/claude-3.5-sonnet")
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            logger.debug(
+                "Calling OpenRouter API | attempt=%s | model=%s",
+                attempt + 1,
+                model,
+            )
+
+            # Add JSON instruction to user prompt
+            json_instruction = (
+                "\n\nIMPORTANT: Return ONLY a valid JSON array. "
+                "No markdown, no explanations, just the JSON array."
+            )
+
+            headers = {
+                "Authorization": f"Bearer {openrouter_api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://pysenior.dev",  # Optional: your site URL
+                "X-Title": "PySenior Code Review",  # Optional: app name
+            }
+
+            payload = {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt + json_instruction},
+                ],
+                "temperature": 0.2,
+                "max_tokens": 4000,
+            }
+
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=60,
+            )
+
+            response.raise_for_status()
+
+            data = response.json()
+            content = data["choices"][0]["message"]["content"]
+
+            # Log usage if available
+            if "usage" in data:
+                logger.info(
+                    "OpenRouter API call successful | model=%s | tokens=%s",
+                    model,
+                    data["usage"].get("total_tokens", "N/A"),
+                )
+            else:
+                logger.info("OpenRouter API call successful | model=%s", model)
+
+            return content
+
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 429:
+                logger.warning(
+                    "OpenRouter rate limit hit | attempt=%s | error=%s",
+                    attempt + 1,
+                    str(e),
+                )
+                if attempt < MAX_RETRIES - 1:
+                    sleep_time = RETRY_DELAY * (2**attempt)
+                    logger.info("Retrying after %s seconds...", sleep_time)
+                    time.sleep(sleep_time)
+                else:
+                    raise
+            else:
+                logger.error(
+                    "OpenRouter HTTP error | attempt=%s | status=%s | error=%s",
+                    attempt + 1,
+                    e.response.status_code,
+                    str(e),
+                )
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_DELAY)
+                else:
+                    raise
+
+        except requests.exceptions.RequestException as e:
+            logger.error(
+                "OpenRouter request error | attempt=%s | error=%s",
+                attempt + 1,
+                str(e),
+            )
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAY)
+            else:
+                raise
+
+        except Exception as e:
+            logger.error(
+                "Unexpected error calling OpenRouter | attempt=%s | error=%s",
+                attempt + 1,
+                str(e),
+            )
+            raise
+
+
+def _call_llm(prompt: str) -> str:
     settings = get_settings()
 
     # Allow override via environment variable
@@ -474,10 +586,12 @@ def _call_llm(prompt: str) -> str:
             return _call_llm_gemini(system_prompt, user_prompt)
         elif provider == "groq":
             return _call_llm_groq(system_prompt, user_prompt)
+        elif provider == "openrouter":
+            return _call_llm_openrouter(system_prompt, user_prompt)
         else:
             raise ValueError(
                 f"Invalid LLM provider: {provider}. "
-                "Valid options: 'openai', 'anthropic', 'gemini', 'groq'"
+                "Valid options: 'openai', 'anthropic', 'gemini', 'groq', 'openrouter'"
             )
 
     except ImportError as e:
@@ -494,7 +608,6 @@ def _call_llm(prompt: str) -> str:
 
 
 def generate(parsed_files: list[ParsedFile]) -> list[ReviewFinding]:
-
     all_findings = []
 
     system_prompt = _build_system_prompt()
