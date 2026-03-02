@@ -76,7 +76,7 @@ PySenior is an AI-powered code review assistant that automatically reviews Pytho
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/ai-python-reviewer.git
+git clone https://github.com/Err-Amon/Pysenior-AI-Assistent.git
 cd ai-python-reviewer/backend
 
 # Create virtual environment
@@ -456,7 +456,7 @@ git push heroku main
 
 ```bash
 # 1. Fork and clone
-git clone https://github.com/your-username/ai-python-reviewer.git
+git clone https://github.com/Err-Amon/Pysenior-AI-Assistent.git
 
 # 2. Create branch
 git checkout -b feature/your-feature

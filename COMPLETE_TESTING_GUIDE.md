@@ -62,7 +62,7 @@ cd ai-python-reviewer/backend
 
 **Option B: If you need to clone it**
 ```bash
-git clone https://github.com/your-org/ai-python-reviewer.git
+git clone https://github.com/Err-Amon/Pysenior-AI-Assistent.git
 cd ai-python-reviewer/backend
 ```
 
