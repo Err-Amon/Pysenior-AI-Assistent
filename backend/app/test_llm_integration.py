@@ -1,10 +1,11 @@
 import sys
 import os
 
-# Set correct working directory to backend
-current_dir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(current_dir)
-sys.path.append(current_dir)
+# Set correct working directory and Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))  # backend/app
+backend_dir = os.path.dirname(current_dir)  # backend
+os.chdir(backend_dir)
+sys.path.insert(0, backend_dir)
 
 from app.config import get_settings
 from app.services.ai_review import _call_llm, generate
