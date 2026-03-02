@@ -302,7 +302,7 @@ app/services/notification.py      90%
 TOTAL                             93%
 ```
 
-270+ tests across all modules with 93% coverage!
+210+ tests across all modules with 93% coverage!
 
 ---
 
