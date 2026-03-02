@@ -225,72 +225,6 @@ GEMINI_API_KEY=AIzaSy...
 ```bash
 pip install google-generativeai
 ```
-
----
-
-## Part 4: Validate Configuration (2 minutes)
-
-### Step 1: Run Configuration Validator
-
-```bash
-python validate_config.py
-```
-
-**Expected output:**
-```
-================================================
-PySenior Configuration Validator
-================================================
-
-.env file loaded
-
-Checking Environment File...
---------------------------------------------------
-.env file exists
-
- Checking GitHub Token...
---------------------------------------------------
-GITHUB_TOKEN configured (starts with ghp_...)
-
-Checking Webhook Secret...
---------------------------------------------------
-GITHUB_WEBHOOK_SECRET configured (43 chars)
-
- Checking LLM Configuration...
---------------------------------------------------
-LLM_PROVIDER: gemini
-GEMINI_API_KEY configured (starts with AIzaSy...)
-
-Checking Application Settings...
---------------------------------------------------
-APP_ENV: development
-LOG_LEVEL: INFO
-MAX_FILE_SIZE_KB: 500
-
-Checking Import Test...
---------------------------------------------------
-Configuration module loaded successfully
-
-================================================
-Summary
-================================================
-PASS: Environment File
-PASS: GitHub Token
-PASS: Webhook Secret
-PASS: LLM Configuration
-PASS: Application Settings
-PASS: Import Test
---------------------------------------------------
-Result: 6/6 checks passed
-
-Configuration is valid! You can start the server:
-   uvicorn app.main:app --reload
-```
-
-**If you see all checkmarks:** Great! Move to next step.
-
-**If you see errors:** Fix the issues shown, then run validator again.
-
 ---
 
 ## Part 5: Run Unit Tests (3 minutes)
@@ -306,14 +240,14 @@ pytest tests/ -v
 **Expected output:**
 ```
 ========================= test session starts =========================
-collected 270 items
+collected 216 items
 
 tests/test_pr_models.py::TestPRFile::test_create_valid_prfile PASSED
 tests/test_pr_models.py::TestPRFile::test_prfile_with_optional_fields PASSED
 ...
 tests/test_ai_review.py::TestGenerate::test_processes_parsed_files PASSED
 
-========================= 270 passed in 10.23s =========================
+========================= 216 passed in 10.23s =========================
 ```
 
 **All tests should PASS.** If some fail, check error messages.

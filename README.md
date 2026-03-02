@@ -109,17 +109,6 @@ GITHUB_WEBHOOK_SECRET=your_webhook_secret_here
 
 **Get FREE Gemini API Key:** https://makersuite.google.com/app/apikey (no credit card needed!)
 
-### Validate Configuration
-
-```bash
-python validate_config.py
-```
-
-Expected output:
-```
-Configuration is valid! You can start the server
-```
-
 ### Start Server
 
 ```bash
