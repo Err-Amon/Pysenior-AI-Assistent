@@ -461,8 +461,6 @@ heroku config:set GITHUB_TOKEN=ghp_...
 git push heroku main
 ```
 
-See [Deployment Guide](docs/deployment.md) for detailed instructions.
-
 ---
 
 ### Quick Contribution Guide
@@ -514,8 +512,6 @@ pip install -r requirements.txt --force-reinstall
 # Run specific test to see details
 pytest tests/test_specific.py -v
 ```
-
-See [Troubleshooting Guide](docs/troubleshooting.md) for more help.
 
 ---
 
