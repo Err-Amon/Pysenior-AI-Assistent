@@ -1,7 +1,7 @@
 [project]
 name = "pysenior-ai-assistant"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Senior Python Engineer in your PRs 24/7"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

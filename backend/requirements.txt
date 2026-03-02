@@ -1,24 +1,16 @@
-# Web Framework
-fastapi==0.115.6
-uvicorn[standard]==0.34.0
-pydantic==2.10.6
-pydantic-settings==2.7.1
+fastapi>=0.133.0
+uvicorn>=0.41.0
 
-# GitHub Integration
-PyGithub==2.6.0
+pydantic>=2.12.5
+pydantic-settings>=2.13.1
+python-dotenv>=1.2.1
 
-# AI/LLM Integration
-openai==1.59.8
-anthropic==0.43.2
+httpx>=0.28.1
+pygithub>=2.8.1
 
-# FREE tier LLM options (optional - install as needed)
-google-generativeai==0.8.3  # Google Gemini (FREE)
-groq==0.11.0                 # Groq (FREE & Fast)
+openai>=2.24.0
+anthropic>=0.84.0
+groq>=1.0.0
 
-# Testing
-pytest==8.3.4
-pytest-cov==6.0.0
-httpx==0.28.1
-
-# Development
-python-dotenv==1.0.1
+pytest>=9.0.2
+ipykernel>=7.2.0
