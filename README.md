@@ -77,7 +77,7 @@ PySenior is an AI-powered code review assistant that automatically reviews Pytho
 ```bash
 # Clone the repository
 git clone https://github.com/Err-Amon/Pysenior-AI-Assistent.git
-cd ai-python-reviewer/backend
+cd Pysenior-AI-Assistent/backend
 
 # Create virtual environment
 python3 -m venv venv
@@ -484,10 +484,6 @@ git push origin feature/your-feature
 - Check server logs: `tail -f logs/pysenior.log`
 - Ensure Python files in PR (`.py` extension)
 
-**API key errors?**
-```bash
-# Validate configuration
-python validate_config.py
 
 # Check .env file
 cat .env | grep API_KEY

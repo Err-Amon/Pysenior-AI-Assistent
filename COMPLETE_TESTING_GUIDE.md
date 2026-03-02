@@ -57,13 +57,13 @@ cd ~/projects
 
 **Option A: If you have the project already**
 ```bash
-cd ai-python-reviewer/backend
+cd Pysenior-AI-Assistent/backend
 ```
 
 **Option B: If you need to clone it**
 ```bash
 git clone https://github.com/Err-Amon/Pysenior-AI-Assistent.git
-cd ai-python-reviewer/backend
+cd Pysenior-AI-Assistent/backend
 ```
 
 ### Step 3: Verify You're in the Right Place
@@ -298,7 +298,7 @@ INFO:     Application startup complete.
 
 **Activate the virtual environment again:**
 ```bash
-cd ~/projects/ai-python-reviewer/backend
+cd ~/projects/Pysenior-AI-Assistent/backend
 source venv/bin/activate  # Windows: venv\Scripts\activate
 ```
 
@@ -746,11 +746,6 @@ pip install -r requirements.txt --force-reinstall
 1. **Check logs:**
    ```bash
    tail -f logs/pysenior.log
-   ```
-
-2. **Run validator:**
-   ```bash
-   python validate_config.py
    ```
 
 3. **Check documentation:**
